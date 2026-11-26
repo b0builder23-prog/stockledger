@@ -1255,7 +1255,12 @@ def export_csv(what):
 # --------------------------------------------------------------------------- settings, users, backups
 @app.route("/settings")
 def settings():
-    return render_template("settings.html", users=q("SELECT id, username FROM users ORDER BY username"),
+    raw = os.environ.get("APP_VERSION", "dev")
+    version = raw
+    if "-" in raw and re.search(r"[0-9a-f]{40}$", raw):  # "main-<40 char sha>" -> "main (abc1234)"
+        name, sha = raw.rsplit("-", 1)
+        version = f"{name} ({sha[:7]})"
+    return render_template("settings.html", version=version, users=q("SELECT id, username FROM users ORDER BY username"),
                            backups=list_backups(app.config["BACKUP_DIR"]), backup_hour=app.config["BACKUP_HOUR"],
                            backup_keep=app.config["BACKUP_KEEP"])
 

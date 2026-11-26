@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>stockledger</Name>
-  <Repository>stockledger:latest</Repository>
+  <Repository>ghcr.io/YOUR_GITHUB_USERNAME/stockledger:latest</Repository>
   <Registry/>
   <Network>bridge</Network>
   <MyIP/>
@@ -20,7 +20,7 @@
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Requires>Build the image first: see README (docker build -t stockledger:latest .)</Requires>
+  <Requires>Replace YOUR_GITHUB_USERNAME with your GitHub username (lower case). See README.</Requires>
   <Config Name="Web UI port" Target="8080" Default="8088" Mode="tcp" Description="Port for the web interface" Type="Port" Display="always" Required="true" Mask="false">8088</Config>
   <Config Name="App data" Target="/data" Default="/mnt/user/appdata/stockledger" Mode="rw" Description="Database, logo and receipts" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/stockledger</Config>
   <Config Name="Backups" Target="/backups" Default="/mnt/user/backups/stockledger" Mode="rw" Description="Nightly zip backups. Best on a different share/disk from appdata." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/backups/stockledger</Config>

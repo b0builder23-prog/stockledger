@@ -15,6 +15,11 @@ WORKDIR /srv
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.title="StockLedger" \
+      org.opencontainers.image.description="Stock, quotes, invoices and UK sole-trader accounting"
+
 COPY stockledger ./stockledger
 COPY wsgi.py entrypoint.py ./
 

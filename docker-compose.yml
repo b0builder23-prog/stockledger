@@ -1,8 +1,8 @@
 # For Unraid's "Compose Manager" plugin, or any Docker host.
 services:
   stockledger:
-    build: .
-    image: stockledger:latest
+    # Replace YOUR_GITHUB_USERNAME (lower case). Update with: docker compose pull && docker compose up -d
+    image: ghcr.io/YOUR_GITHUB_USERNAME/stockledger:latest
     container_name: stockledger
     restart: unless-stopped
     ports:

@@ -44,6 +44,10 @@
   {% else %}<p class="muted">No backups yet.</p>{% endif %}
 </div>
 
+<h2>About</h2>
+<div class="card"><p style="margin:0">StockLedger version: <strong>{{ version }}</strong>
+  <span class="muted small">- changes each time you update the container from GitHub.</span></p></div>
+
 <h2>Your password</h2>
 <form class="card" method="post" action="{{ url_for('settings_password') }}">{{ csrf_input() }}
   <div class="f"><div><label>Current password</label><input type="password" name="current_password" autocomplete="current-password"></div>
