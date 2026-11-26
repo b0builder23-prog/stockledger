@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Tax summary{% endblock %}
+{% block body %}
+<div class="row between"><h1>Reports</h1>
+  <div class="row"><a class="btn small" href="{{ url_for('reports_sales') }}">Sales &amp; profit</a><a class="btn small primary" href="{{ url_for('reports_tax') }}">Tax summary</a></div></div>
+<form class="searchbar" method="get">
+  <select name="ty" onchange="this.form.submit()">{% for y in years %}<option value="{{ y }}" {{ 'selected' if y == s.year }}>Tax year {{ tax_year_label(y) }}</option>{% endfor %}</select>
+  <a class="btn" href="{{ url_for('reports_tax', ty=s.year, csv=1) }}">Export CSV</a>
+  <a class="btn" href="{{ url_for('export_csv', what='income', ty=s.year) }}">Income list</a>
+  <a class="btn" href="{{ url_for('export_csv', what='expenses', ty=s.year) }}">Expenses list</a>
+</form>
+<p class="muted">{{ s.start.strftime('%d %B %Y') }} to {{ s.end.strftime('%d %B %Y') }} &middot; cash basis</p>
+
+<div class="grid g4">
+  <div class="stat"><div class="n">{{ money(s.turnover) }}</div><div class="l">Turnover</div></div>
+  <div class="stat"><div class="n">{{ money(s.expenses_total) }}</div><div class="l">Allowable expenses</div></div>
+  <div class="stat"><div class="n {{ 'ok' if s.net >= 0 else 'bad' }}">{{ money(s.net) }}</div><div class="l">Net profit before tax</div></div>
+</div>
+
+<h2>Income</h2>
+<div class="tablewrap"><table>
+  <tr><td>Invoices paid in the year (money actually received)</td><td class="num">{{ money(s.received) }}</td></tr>
+  <tr><td>Other income</td><td class="num">{{ money(s.other) }}</td></tr>
+  <tr class="total"><td>Total turnover</td><td class="num">{{ money(s.turnover) }}</td></tr>
+</table></div>
+<p class="muted small">For reference, you issued {{ money(s.invoiced) }} of invoices in this period. Under the cash basis only money received counts, so unpaid invoices are not in turnover until they are paid.</p>
+
+{% if s.goods_manual and (s.purchases or s.cogs) %}
+<div class="card" style="border-color:var(--warn)"><strong class="warn">Possible double counting.</strong>
+  This year has {{ money(s.goods_manual) }} entered under Expenses as "Goods bought for resale" <em>and</em> stock added under Stock
+  ({{ money(s.purchases) }} bought). Stock records already count as purchases, so if these are the same goods, delete the expense
+  (Money &rarr; Expenses) and keep the stock entry.</div>
+{% endif %}
+<h2>Expenses by tax return heading</h2>
+<div class="tablewrap"><table>
+  {% for heading, h in s.headings %}
+  <tr><td><strong>{{ heading }}</strong></td><td class="num"><strong>{{ money(h.total) }}</strong></td></tr>
+  {% for label, amount in h['items'] %}<tr><td class="muted" style="padding-left:28px">{{ label }}</td><td class="num muted">{{ money(amount) }}</td></tr>{% endfor %}
+  {% endfor %}
+  <tr class="total"><td>Total allowable expenses</td><td class="num">{{ money(s.expenses_total) }}</td></tr>
+  <tr class="total"><td>Net profit (turnover less expenses)</td><td class="num">{{ money(s.net) }}</td></tr>
+</table></div>
+<p class="muted small">Stock is deducted
+{% if s.method == 'purchases' %}when bought ({{ money(s.purchases) }} this year) - the normal cash basis treatment, so stock still on the shelf at 5 April is already deducted.
+For comparison, the cost of the stock actually sold on invoices dated in this year was {{ money(s.cogs) }}.
+{% else %}as it is sold ({{ money(s.cogs) }} this year, by invoice date). For comparison, stock bought this year cost {{ money(s.purchases) }}. You can switch method in Settings; ask your accountant which suits you.
+{% endif %}</p>
+
+<div class="card">
+  <h3>Before you use these figures</h3>
+  <ul class="small" style="margin:0;padding-left:18px">
+    <li>This is a bookkeeping summary, not tax advice. Check it against HMRC guidance or with an accountant before filing.</li>
+    <li>If your turnover was under &pound;90,000 you can normally use the short self-employment pages (SA103S) and enter total expenses as a single figure; otherwise use the full pages (SA103F).</li>
+    <li>If your total self-employment income was &pound;1,000 or less you may be able to use the &pound;1,000 trading allowance instead of claiming expenses. You can't do both.</li>
+    <li>Making Tax Digital for Income Tax is already compulsory for sole traders with qualifying income over &pound;50,000 (from April 2026), dropping to &pound;30,000 from April 2027 and &pound;20,000 from April 2028. If that applies to you, you need HMRC-recognised software to send quarterly updates - this app prepares the figures but cannot submit to HMRC.</li>
+    <li>Not included: mileage allowances, use of home, capital allowances on cars, personal drawings (not an expense) and any private-use adjustments.</li>
+  </ul>
+</div>
+{% endblock %}

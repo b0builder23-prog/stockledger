@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}StockLedger{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if user %}
+{% macro tab(ep_list, target, label) %}<a class="tab {{ 'on' if endpoint in ep_list else '' }}" href="{{ url_for(target) }}">{{ label }}</a>{% endmacro %}
+<nav>
+  <a class="brand" href="{{ url_for('dashboard') }}">{{ S.business_name or 'StockLedger' }}</a>
+  {{ tab(['dashboard'], 'dashboard', 'Dashboard') }}
+  {{ tab(['products','product_new','product_view','product_edit','stock_add','lot_view'], 'products', 'Stock') }}
+  {{ tab(['customers','customer_edit'], 'customers', 'Customers') }}
+  {{ tab(['quotes'], 'quotes', 'Quotes') }}
+  {{ tab(['invoices'], 'invoices', 'Invoices') }}
+  {{ tab(['expenses','expense_edit','income'], 'expenses', 'Money') }}
+  {{ tab(['reports_sales','reports_tax'], 'reports_sales', 'Reports') }}
+  {{ tab(['settings'], 'settings', 'Settings') }}
+  <span class="sp"></span>
+  <form method="post" action="{{ url_for('logout') }}">{{ csrf_input() }}<button class="small" title="Signed in as {{ user.username }}">Sign out</button></form>
+</nav>
+{% endif %}
+<main>
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+{% endwith %}
+{% block body %}{% endblock %}
+</main>
+</body>
+</html>

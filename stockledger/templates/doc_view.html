@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% set is_inv = d.kind == 'invoice' %}
+{% block title %}{{ d.number or ('Draft ' ~ d.kind) }}{% endblock %}
+{% block body %}
+<div class="row between">
+  <div><h1 style="margin:0">{{ 'Invoice' if is_inv else 'Quote' }} {{ d.number or '(draft)' }}
+    <span class="badge {{ pay.split()[0] }}">{{ pay }}</span></h1>
+    <div class="muted small">
+      {% if source %}Created from quote <a href="{{ url_for('doc_view', doc_id=source.id) }}">{{ source.number }}</a>. {% endif %}
+      {% if converted %}Converted to <a href="{{ url_for('doc_view', doc_id=converted.id) }}">draft/invoice {{ converted.number or '(draft)' }}</a>. {% endif %}
+    </div></div>
+  <div class="row noprint">
+    <a class="btn" target="_blank" href="{{ url_for('doc_pdf', doc_id=d.id) }}">View PDF</a>
+    <a class="btn primary" href="{{ url_for('doc_pdf', doc_id=d.id, download=1) }}">Download PDF</a>
+  </div>
+</div>
+
+{% if editable %}
+<form class="card" id="headerform" method="post" action="{{ url_for('doc_header', doc_id=d.id) }}" style="margin-top:14px">
+  {{ csrf_input() }}
+  <div class="f">
+    <div><label>Customer</label>
+      <select name="customer_id" onchange="this.form.submit()"><option value="">- choose -</option>
+        {% for c in customers %}<option value="{{ c.id }}" {{ 'selected' if c.id == d.customer_id }}>{{ c.name }}</option>{% endfor %}</select>
+      <div class="small"><a href="{{ url_for('customer_edit', doc=d.id) }}">+ new customer</a></div></div>
+    <div><label>{{ 'Invoice date' if is_inv else 'Quote date' }}</label><input type="date" name="issue_date" value="{{ d.issue_date or today_iso }}" onchange="this.form.submit()"></div>
+    <div><label>{{ 'Payment due (blank = ' ~ S.payment_terms_days ~ ' days)' if is_inv else 'Valid until' }}</label><input type="date" name="due_date" value="{{ d.due_date or '' }}" onchange="this.form.submit()"></div>
+    <div class="wide"><label>Notes (shown on the PDF)</label><textarea name="notes" style="min-height:60px">{{ d.notes or '' }}</textarea></div>
+  </div>
+  <p style="margin-bottom:0"><button>Save details</button></p>
+</form>
+{% else %}
+<div class="card" style="margin-top:14px"><div class="f">
+  <div><label>Customer</label>{{ customer.name if customer else '-' }}{% if customer and customer.email %}<div class="muted small">{{ customer.email }}</div>{% endif %}</div>
+  <div><label>Date</label>{{ d.issue_date|dmy }}</div>
+  <div><label>{{ 'Payment due' if is_inv else 'Valid until' }}</label>{{ d.due_date|dmy }}</div>
+  {% if d.notes %}<div class="wide"><label>Notes</label>{{ d.notes }}</div>{% endif %}
+</div></div>
+{% endif %}
+
+<h2>Items</h2>
+<div class="tablewrap"><table>
+  <tr><th>Description</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:130px">Unit price £</th><th class="num">Amount</th>{% if editable %}<th style="width:120px"></th>{% endif %}</tr>
+  {% for l in lines %}
+  <tr>
+    <td>
+      {% if editable %}<input form="lf-{{ l.id }}" name="description" value="{{ l.description }}">{% else %}{{ l.description }}{% endif %}
+      {% if l.serials %}<div class="serials">S/N: {{ l.serials|join(', ') }}</div>{% endif %}
+      {% if is_inv and editable and l.product_id and l.tracks_serials %}
+        <div class="small"><a href="{{ url_for('line_units', line_id=l.id) }}">{{ 'Change serial numbers' if l.alloc_qty else 'Choose serial numbers' }}</a>
+        {% if l.needs_units %}<span class="bad"> - needs {{ l.qty }} serial number{{ 's' if l.qty != 1 }} ({{ l.alloc_qty }} chosen)</span>{% endif %}</div>
+      {% endif %}
+    </td>
+    <td class="num">{% if editable and not (is_inv and l.product_id and l.tracks_serials) %}<input form="lf-{{ l.id }}" name="qty" type="number" min="1" value="{{ l.qty }}">{% else %}{{ l.qty }}{% endif %}</td>
+    <td class="num">{% if editable %}<input form="lf-{{ l.id }}" name="unit_price" inputmode="decimal" value="{{ pence(l.unit_price) }}">{% else %}{{ money(l.unit_price) }}{% endif %}</td>
+    <td class="num">{{ money(l.amount) }}</td>
+    {% if editable %}<td class="nowrap">
+      <form id="lf-{{ l.id }}" method="post" action="{{ url_for('line_update', line_id=l.id) }}" class="inline">{{ csrf_input() }}<button class="small">Save</button></form>
+      <form method="post" action="{{ url_for('line_delete', line_id=l.id) }}" class="inline">{{ csrf_input() }}<button class="small danger" title="Remove line">&times;</button></form>
+    </td>{% endif %}
+  </tr>
+  {% else %}<tr><td colspan="5" class="muted">No items yet.</td></tr>{% endfor %}
+  <tr class="total"><td colspan="3" class="right">Total</td><td class="num">{{ money(d.total) }}</td>{% if editable %}<td></td>{% endif %}</tr>
+</table></div>
+
+{% if editable %}
+<form class="card" method="post" action="{{ url_for('line_add', doc_id=d.id) }}" style="margin-top:14px">
+  {{ csrf_input() }}<h3>Add an item</h3>
+  <div class="lineform">
+    <div><label>Product</label><select name="product_id" id="lp"><option value="" data-price="">- free text (e.g. delivery) -</option>
+      {% for p in prods %}<option value="{{ p.id }}" data-price="{{ pence(p.sale_price) }}" data-name="{{ p.name }}" data-serial="{{ p.tracks_serials }}">{{ p.name }}{% if is_inv %} ({{ p.in_stock }} in stock){% endif %}</option>{% endfor %}</select></div>
+    <div><label>Description</label><input name="description" id="ld" placeholder="Defaults to the product name"></div>
+    <div><label>Qty</label><input name="qty" id="lq" type="number" min="1" value="1"></div>
+    <div><label>Unit price £</label><input name="unit_price" id="lpr" inputmode="decimal" placeholder="default"></div>
+    <div><button class="primary">Add</button></div>
+  </div>
+  {% if is_inv %}<p class="muted small" style="margin-bottom:0">For serial-numbered products you'll tick the exact units next, and the quantity follows your selection. Use a negative price for a discount.</p>{% endif %}
+</form>
+<script>
+const lp=document.getElementById('lp');
+lp.addEventListener('change',()=>{const o=lp.selectedOptions[0];document.getElementById('ld').value=o.dataset.name||'';
+ document.getElementById('lpr').value=o.dataset.price||'';
+ const ser=o.dataset.serial==='1'&&{{ 'true' if is_inv else 'false' }};document.getElementById('lq').disabled=ser;});
+</script>
+{% endif %}
+
+{% if is_inv and (cost or lines) %}
+<div class="card muted small" style="margin-top:14px">Internal only (not on the PDF): cost of goods {{ money(cost) }} &middot; gross profit {{ money(d.total - cost) }}{% set m = pct(d.total - cost, d.total) %}{% if m is not none %} &middot; margin {{ m }}%{% endif %}</div>
+{% endif %}
+
+{# ---------------- actions ---------------- #}
+<div class="row noprint" style="margin-top:14px">
+{% if is_inv and d.status == 'draft' %}
+  <button class="primary" form="headerform" name="then" value="issue">Issue invoice</button>
+  <form method="post" action="{{ url_for('doc_delete', doc_id=d.id) }}" class="inline" onsubmit="return confirm('Delete this draft and release its stock?')">{{ csrf_input() }}<button class="danger">Delete draft</button></form>
+{% elif is_inv and d.status == 'issued' %}
+  <form method="post" action="{{ url_for('doc_void', doc_id=d.id) }}" class="inline" onsubmit="return confirm('Void this invoice and return its stock?')">{{ csrf_input() }}<button class="danger">Void invoice</button></form>
+{% elif not is_inv %}
+  {% if d.status == 'open' or d.status == 'accepted' %}
+  <form method="post" action="{{ url_for('quote_convert', doc_id=d.id) }}" class="inline">{{ csrf_input() }}<button class="primary">Convert to invoice</button></form>{% endif %}
+  {% for s, label in [('accepted','Mark accepted'),('declined','Mark declined'),('open','Reopen')] if s != d.status %}
+  <form method="post" action="{{ url_for('quote_status', doc_id=d.id) }}" class="inline">{{ csrf_input() }}<input type="hidden" name="status" value="{{ s }}"><button>{{ label }}</button></form>{% endfor %}
+  <form method="post" action="{{ url_for('doc_delete', doc_id=d.id) }}" class="inline" onsubmit="return confirm('Delete this quote?')">{{ csrf_input() }}<button class="danger">Delete quote</button></form>
+{% endif %}
+</div>
+
+{% if is_inv and d.status in ('issued',) %}
+<h2>Payments</h2>
+<div class="tablewrap"><table><tr><th>Date</th><th>Method</th><th>Reference</th><th class="num">Amount</th><th></th></tr>
+{% for p in payments %}<tr><td>{{ p.paid_date|dmy }}</td><td>{{ p.method }}</td><td>{{ p.reference }}</td><td class="num">{{ money(p.amount) }}</td>
+  <td><form method="post" action="{{ url_for('payment_delete', pid=p.id) }}" class="inline" onsubmit="return confirm('Delete this payment?')">{{ csrf_input() }}<button class="small danger">&times;</button></form></td></tr>
+{% else %}<tr><td colspan="5" class="muted">No payments yet.</td></tr>{% endfor %}
+<tr class="total"><td colspan="3" class="right">Balance due</td><td class="num">{{ money(d.total - d.paid) }}</td><td></td></tr></table></div>
+{% if d.total > d.paid %}
+<form class="card" method="post" action="{{ url_for('payment_add', doc_id=d.id) }}" style="margin-top:14px">{{ csrf_input() }}
+  <h3>Record a payment</h3>
+  <p class="muted small">On the cash basis this is the date the money counts as income for your tax return.</p>
+  <div class="f">
+    <div><label>Date received</label><input type="date" name="paid_date" value="{{ today_iso }}"></div>
+    <div><label>Amount £</label><input name="amount" inputmode="decimal" value="{{ pence(d.total - d.paid) }}"></div>
+    <div><label>Method</label><select name="method">{% for m in PAY_METHODS %}<option>{{ m }}</option>{% endfor %}</select></div>
+    <div><label>Reference</label><input name="reference"></div>
+  </div><p style="margin-bottom:0"><button class="primary">Record payment</button></p>
+</form>{% endif %}
+{% endif %}
+{% endblock %}

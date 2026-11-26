@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<div class="row between"><h1>Dashboard</h1>
+  <div class="row">
+    <form class="inline" method="post" action="{{ url_for('doc_new', kind='invoice') }}">{{ csrf_input() }}<button class="primary">New invoice</button></form>
+    <form class="inline" method="post" action="{{ url_for('doc_new', kind='quote') }}">{{ csrf_input() }}<button>New quote</button></form>
+    <a class="btn" href="{{ url_for('stock_add') }}">Add stock</a>
+  </div>
+</div>
+
+<form class="searchbar" action="{{ url_for('products') }}">
+  <input name="q" placeholder="Scan or type a serial number / product / barcode" autofocus>
+  <button>Find</button>
+</form>
+
+<div class="grid g4">
+  <div class="stat"><div class="n">{{ stock.n }}</div><div class="l">Items in stock</div></div>
+  <div class="stat"><div class="n">{{ money(stock.cost) }}</div><div class="l">Stock value at cost</div></div>
+  <div class="stat"><div class="n">{{ money(stock.retail) }}</div><div class="l">Stock value at sale price</div></div>
+  <div class="stat"><div class="n {{ 'bad' if overdue else '' }}">{{ money(outstanding_total) }}</div><div class="l">Unpaid invoices{% if overdue %} ({{ overdue|length }} overdue){% endif %}</div></div>
+</div>
+
+<h2>This month</h2>
+<div class="grid g4">
+  <div class="stat"><div class="n">{{ money(month.invoiced if month else 0) }}</div><div class="l">Invoiced</div></div>
+  <div class="stat"><div class="n">{{ money(month.profit if month else 0) }}</div><div class="l">Gross profit{% if month and month.margin is not none %} ({{ month.margin }}%){% endif %}</div></div>
+  <div class="stat"><div class="n">{{ money((month.received + month.other) if month else 0) }}</div><div class="l">Money received</div></div>
+</div>
+
+<h2>Tax year {{ ty.label }} so far</h2>
+<div class="grid g4">
+  <div class="stat"><div class="n">{{ money(ty.turnover) }}</div><div class="l">Turnover (cash received)</div></div>
+  <div class="stat"><div class="n">{{ money(ty.expenses_total) }}</div><div class="l">Allowable expenses</div></div>
+  <div class="stat"><div class="n {{ 'ok' if ty.net >= 0 else 'bad' }}">{{ money(ty.net) }}</div><div class="l">Net profit</div></div>
+  <div class="stat"><a href="{{ url_for('reports_tax') }}">Full tax summary &rarr;</a></div>
+</div>
+
+<h2>Recent invoices {% if drafts %}<span class="badge Draft">{{ drafts }} draft{{ 's' if drafts != 1 }}</span>{% endif %}</h2>
+<div class="tablewrap"><table>
+  <tr><th>Number</th><th>Date</th><th>Customer</th><th class="num">Total</th><th>Status</th></tr>
+  {% for d in recent %}
+  <tr><td><a href="{{ url_for('doc_view', doc_id=d.id) }}">{{ d.number }}</a></td><td>{{ d.issue_date|dmy }}</td><td>{{ d.customer_name }}</td>
+      <td class="num">{{ money(d.total) }}</td><td><span class="badge {{ d.pay.split()[0] }}">{{ d.pay }}</span></td></tr>
+  {% else %}<tr><td colspan="5" class="muted">No invoices yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

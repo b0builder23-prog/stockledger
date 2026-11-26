@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% set plural = 'Invoices' if kind == 'invoice' else 'Quotes' %}
+{% block title %}{{ plural }}{% endblock %}
+{% block body %}
+<div class="row between"><h1>{{ plural }}</h1>
+  <form class="inline" method="post" action="{{ url_for('doc_new', kind=kind) }}">{{ csrf_input() }}<button class="primary">New {{ kind }}</button></form></div>
+<form class="searchbar"><input name="q" value="{{ text }}" placeholder="Search number or customer">
+  <select name="status" onchange="this.form.submit()"><option value="">All</option>
+  {% if kind == 'invoice' %}{% for s in ['draft','unpaid','overdue','partpaid','paid','void'] %}<option value="{{ s }}" {{ 'selected' if s == status }}>{{ s|capitalize }}</option>{% endfor %}
+  {% else %}{% for s in ['open','accepted','declined'] %}<option value="{{ s }}" {{ 'selected' if s == status }}>{{ s|capitalize }}</option>{% endfor %}{% endif %}</select>
+  <button>Filter</button>
+  {% if kind == 'invoice' %}<a class="btn" href="{{ url_for('export_csv', what='invoices') }}">Export CSV</a>{% endif %}</form>
+<div class="tablewrap"><table>
+  <tr><th>Number</th><th>Date</th><th>Customer</th><th class="num">Total</th>{% if kind == 'invoice' %}<th class="num">Paid</th>{% endif %}<th>Status</th></tr>
+  {% for d in rows %}
+  <tr><td><a href="{{ url_for('doc_view', doc_id=d.id) }}">{{ d.number or 'Draft' }}</a></td><td>{{ d.issue_date|dmy }}</td><td>{{ d.customer_name or '' }}</td>
+    <td class="num">{{ money(d.total) }}</td>{% if kind == 'invoice' %}<td class="num">{{ money(d.paid) }}</td>{% endif %}
+    <td><span class="badge {{ d.pay.split()[0] }}">{{ d.pay }}</span></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Nothing here yet.</td></tr>{% endfor %}
+</table></div>
+{% if kind == 'invoice' and outstanding %}<p class="muted">Outstanding in this list: <strong>{{ money(outstanding) }}</strong></p>{% endif %}
+{% endblock %}

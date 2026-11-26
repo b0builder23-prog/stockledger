@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Choose serial numbers{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('doc_view', doc_id=d.id) }}">&larr; Back to draft invoice</a></p>
+<h1>Choose serial numbers</h1>
+<p class="muted">{{ ln.description }} - tick each unit being sold. The quantity on the invoice follows what you tick.</p>
+<form method="post">{{ csrf_input() }}
+  <div class="searchbar"><input id="scan" placeholder="Scan or type a serial number and press Enter to tick it" autofocus autocomplete="off">
+    <input id="filter" placeholder="...or filter the list"><span class="muted" id="msg"></span></div>
+  <div class="card picker" style="padding:0">
+    {% for u in units %}
+    <label data-serial="{{ u.serial|lower }}"><input type="checkbox" name="lot_ids" value="{{ u.id }}" {{ 'checked' if u.selected }}>
+      <span><strong>{{ u.serial }}</strong> <span class="muted small">cost {{ money(u.unit_cost) }}{% if u.condition %} &middot; {{ u.condition }}{% endif %} &middot; bought {{ u.purchase_date|dmy }}</span></span></label>
+    {% else %}<p class="muted" style="padding:12px">No units of this product are in stock. <a href="{{ url_for('stock_add', product_id=ln.product_id) }}">Add stock</a>.</p>{% endfor %}
+  </div>
+  <p><button class="primary">Save selection</button> <span class="muted" id="n"></span></p>
+</form>
+<script>
+const boxes=[...document.querySelectorAll('.picker input')], msg=document.getElementById('msg'), n=document.getElementById('n');
+function upd(){n.textContent=boxes.filter(b=>b.checked).length+' selected';}
+boxes.forEach(b=>b.addEventListener('change',upd));upd();
+document.getElementById('scan').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;e.preventDefault();
+  const v=e.target.value.trim().toLowerCase();if(!v)return;
+  const lab=[...document.querySelectorAll('.picker label')].find(l=>l.dataset.serial===v);
+  if(lab){const cb=lab.querySelector('input');cb.checked=true;lab.scrollIntoView({block:'nearest'});msg.textContent='Ticked '+v.toUpperCase();msg.className='ok';upd();}
+  else{msg.textContent='"'+v+'" is not in stock for this product';msg.className='bad';}
+  e.target.value='';});
+document.getElementById('filter').addEventListener('input',e=>{const v=e.target.value.toLowerCase();
+  document.querySelectorAll('.picker label').forEach(l=>l.style.display=l.dataset.serial.includes(v)?'':'none');});
+</script>
+{% endblock %}

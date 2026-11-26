@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sales report{% endblock %}
+{% block body %}
+<div class="row between"><h1>Reports</h1>
+  <div class="row"><a class="btn small primary" href="{{ url_for('reports_sales') }}">Sales &amp; profit</a><a class="btn small" href="{{ url_for('reports_tax') }}">Tax summary</a></div></div>
+<form class="searchbar" method="get">
+  <select name="period" onchange="this.form.submit()">
+    {% for k, l in [('week','Weekly'),('month','Monthly'),('year','Calendar year'),('taxyear','Tax year (6 Apr - 5 Apr)')] %}<option value="{{ k }}" {{ 'selected' if k == period }}>{{ l }}</option>{% endfor %}</select>
+  <a class="btn" href="{{ url_for('reports_sales', period=period, csv=1) }}">Export CSV</a>
+</form>
+<div class="tablewrap"><table>
+  <tr><th>Period</th><th class="num">Invoices</th><th class="num">Invoiced</th><th class="num">Cost of goods</th><th class="num">Gross profit</th><th class="num">Margin</th><th class="num">Cash received</th><th class="num">Other income</th></tr>
+  {% for r in rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td><td class="num">{{ money(r.invoiced) }}</td><td class="num">{{ money(r.cost) }}</td>
+    <td class="num">{{ money(r.profit) }}</td><td class="num">{{ (r.margin ~ '%') if r.margin is not none else '' }}</td><td class="num">{{ money(r.received) }}</td><td class="num">{{ money(r.other) }}</td></tr>
+  {% else %}<tr><td colspan="8" class="muted">No sales yet.</td></tr>{% endfor %}
+  {% if rows %}<tr class="total"><td>All periods</td><td class="num">{{ totals.count }}</td><td class="num">{{ money(totals.invoiced) }}</td><td class="num">{{ money(totals.cost) }}</td>
+    <td class="num">{{ money(totals.profit) }}</td><td class="num">{{ (totals.margin ~ '%') if totals.margin is not none else '' }}</td><td class="num">{{ money(totals.received) }}</td><td class="num">{{ money(totals.other) }}</td></tr>{% endif %}
+</table></div>
+<p class="muted small">"Invoiced" and "Gross profit" are grouped by invoice date. "Cash received" is grouped by the date each payment arrived - that is the figure your tax return uses on the cash basis. Cost of goods is what you paid for the exact units on each invoice.</p>
+{% endblock %}

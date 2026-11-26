@@ -1,0 +1,18 @@
+# For Unraid's "Compose Manager" plugin, or any Docker host.
+services:
+  stockledger:
+    build: .
+    image: stockledger:latest
+    container_name: stockledger
+    restart: unless-stopped
+    ports:
+      - "8088:8080"
+    environment:
+      TZ: Europe/London
+      PUID: "99"
+      PGID: "100"
+      BACKUP_HOUR: "2"     # nightly backup after 02:00
+      BACKUP_KEEP: "30"    # keep the newest 30 backups
+    volumes:
+      - /mnt/user/appdata/stockledger:/data
+      - /mnt/user/backups/stockledger:/backups   # ideally a different disk/share from appdata

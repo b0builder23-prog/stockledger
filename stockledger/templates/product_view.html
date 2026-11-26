@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block body %}
+<div class="row between"><div><h1>{{ p.name }}</h1>
+  <div class="muted">{{ p.category }}{% if p.sku %} &middot; {{ p.sku }}{% endif %} &middot; default price {{ money(p.sale_price) }} &middot; {{ in_stock }} in stock</div></div>
+  <div class="row"><a class="btn primary" href="{{ url_for('stock_add', product_id=p.id) }}">Add stock</a>
+  <a class="btn" href="{{ url_for('product_edit', product_id=p.id) }}">Edit</a></div></div>
+
+{% if p.tracks_serials %}
+<div class="row" style="margin:14px 0"><a class="btn small {{ 'primary' if show=='stock' }}" href="?show=stock">In stock</a>
+  <a class="btn small {{ 'primary' if show=='all' }}" href="?show=all">All units incl. sold ({{ sold_count }} sold/reserved)</a></div>
+<div class="tablewrap"><table>
+  <tr><th>Serial</th><th>Status</th><th>Bought</th><th class="num">Cost</th><th class="num">Sale price</th><th class="num">Profit</th><th class="num">Margin</th></tr>
+  {% for l in serial_lots %}
+    {% set sold = l.doc_id is not none %}
+    {% set price = l.sale_price if sold else (l.list_price if l.list_price is not none else p.sale_price) %}
+    <tr><td><a href="{{ url_for('lot_view', lot_id=l.id) }}">{{ l.serial }}</a>{% if l.condition %}<div class="muted small">{{ l.condition }}</div>{% endif %}</td>
+      <td>{% if not sold %}<span class="badge in">In stock</span>
+          {% elif l.doc_status == 'draft' %}<a href="{{ url_for('doc_view', doc_id=l.doc_id) }}"><span class="badge Draft">Reserved - draft invoice</span></a>
+          {% else %}<a href="{{ url_for('doc_view', doc_id=l.doc_id) }}">Sold {{ l.number }}</a><div class="muted small">{{ l.customer_name or '' }} {{ l.sold_date|dmy }}</div>{% endif %}</td>
+      <td class="nowrap">{{ l.purchase_date|dmy }}<div class="muted small">{{ l.supplier or '' }}</div></td>
+      <td class="num">{{ money(l.unit_cost) }}</td>
+      <td class="num">{{ money(price) }}{% if not sold %}<div class="muted small">expected</div>{% endif %}</td>
+      <td class="num">{{ money(price - l.unit_cost) }}</td>
+      <td class="num">{% set m = pct(price - l.unit_cost, price) %}{{ (m ~ '%') if m is not none else '' }}</td></tr>
+  {% else %}<tr><td colspan="7" class="muted">No units to show. <a href="{{ url_for('stock_add', product_id=p.id) }}">Add stock</a>.</td></tr>{% endfor %}
+</table></div>
+{% else %}
+<h2>Stock batches</h2>
+<div class="tablewrap"><table>
+  <tr><th>Bought</th><th>Supplier</th><th class="num">Bought qty</th><th class="num">Left</th><th class="num">Cost each</th><th class="num">Sale price</th><th class="num">Margin</th><th></th></tr>
+  {% for l in bulk_lots %}{% set price = l.list_price if l.list_price is not none else p.sale_price %}
+  <tr><td>{{ l.purchase_date|dmy }}</td><td>{{ l.supplier or '' }}</td><td class="num">{{ l.qty_initial }}</td><td class="num">{{ l.qty_remaining }}</td>
+    <td class="num">{{ money(l.unit_cost) }}</td><td class="num">{{ money(price) }}</td>
+    <td class="num">{% set m = pct(price - l.unit_cost, price) %}{{ (m ~ '%') if m is not none else '' }}</td>
+    <td><a href="{{ url_for('lot_view', lot_id=l.id) }}">open</a></td></tr>
+  {% else %}<tr><td colspan="8" class="muted">No batches yet.</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+{% if p.notes %}<h2>Notes</h2><p>{{ p.notes }}</p>{% endif %}
+{% endblock %}

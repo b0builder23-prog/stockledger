@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Customer{% endblock %}
+{% block body %}
+<h1>{{ cust.name if cust else 'New customer' }}</h1>
+<form class="card" method="post">{{ csrf_input() }}
+  <div class="f">
+    <div class="wide"><label>Name</label><input name="name" value="{{ f.name }}" required></div>
+    <div class="wide"><label>Address (appears on invoices)</label><textarea name="address">{{ f.address or '' }}</textarea></div>
+    <div><label>Email</label><input name="email" type="email" value="{{ f.email or '' }}"></div>
+    <div><label>Phone</label><input name="phone" value="{{ f.phone or '' }}"></div>
+    <div class="wide"><label>Notes</label><input name="notes" value="{{ f.notes or '' }}"></div>
+  </div>
+  <p><button class="primary">Save</button> <a class="btn" href="{{ url_for('customers') }}">Cancel</a></p>
+</form>
+{% if cust %}
+{% if docs %}<h2>Quotes and invoices</h2><div class="tablewrap"><table><tr><th>Number</th><th>Type</th><th>Date</th><th class="num">Total</th><th>Status</th></tr>
+{% for d in docs %}<tr><td><a href="{{ url_for('doc_view', doc_id=d.id) }}">{{ d.number or 'Draft' }}</a></td><td>{{ d.kind }}</td><td>{{ d.issue_date|dmy }}</td><td class="num">{{ money(d.total) }}</td><td>{{ d.pay }}</td></tr>{% endfor %}</table></div>
+{% else %}
+<form method="post" action="{{ url_for('customer_delete', cid=cust.id) }}" onsubmit="return confirm('Delete this customer?')">{{ csrf_input() }}<button class="danger">Delete customer</button></form>
+{% endif %}{% endif %}
+{% endblock %}

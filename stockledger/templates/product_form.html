@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if product else 'New' }} product{% endblock %}
+{% block body %}
+<h1>{{ 'Edit product' if product else 'New product' }}</h1>
+<form class="card" method="post">
+  {{ csrf_input() }}
+  <div class="f">
+    <div class="wide"><label>Name</label><input name="name" value="{{ f.name }}" required placeholder="e.g. Dell Latitude 7420 i5 16GB"></div>
+    <div><label>Category</label><input name="category" list="cats" value="{{ f.category }}">
+      <datalist id="cats">{% for c in PRODUCT_CATEGORIES %}<option value="{{ c }}">{% endfor %}</datalist></div>
+    <div><label>SKU / model code (optional)</label><input name="sku" value="{{ f.sku or '' }}"></div>
+    <div><label>Barcode (optional)</label><input name="barcode" value="{{ f.barcode or '' }}"></div>
+    <div><label>Default sale price (£)</label><input name="sale_price" inputmode="decimal" value="{{ f.sale_price }}"></div>
+    <div class="wide"><label><input type="checkbox" name="tracks_serials" {{ 'checked' if f.tracks_serials else '' }}> Track individual serial numbers (laptops, routers, printers...). Untick for bulk items such as cables.</label></div>
+    <div class="wide"><label>Notes</label><textarea name="notes">{{ f.notes or '' }}</textarea></div>
+  </div>
+  <p><button class="primary">Save</button> <a class="btn" href="{{ url_for('product_view', product_id=product.id) if product else url_for('products') }}">Cancel</a></p>
+</form>
+{% if product %}
+<form method="post" action="{{ url_for('product_archive', product_id=product.id) }}">{{ csrf_input() }}
+  <button>{{ 'Archive this product' if product.active else 'Restore this product' }}</button>
+  <span class="muted small">Archived products are hidden from lists and new invoices but keep their history.</span></form>
+{% endif %}
+{% endblock %}

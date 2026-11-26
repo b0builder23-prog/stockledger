@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Expenses{% endblock %}
+{% block body %}
+<div class="row between"><h1>Money</h1>
+  <div class="row"><a class="btn small primary" href="{{ url_for('expenses') }}">Expenses</a><a class="btn small" href="{{ url_for('income') }}">Other income</a></div></div>
+<form class="card" method="post" enctype="multipart/form-data" action="{{ url_for('expenses', ty=ty) }}">{{ csrf_input() }}
+  <h3>Add an expense</h3>
+  <div class="f">
+    <div><label>Date</label><input type="date" name="expense_date" value="{{ today_iso }}" required></div>
+    <div><label>Category</label><select name="category">{% for k, l, h in EXPENSE_CATEGORIES if k != 'goods' %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+    <div><label>Amount £</label><input name="amount" inputmode="decimal" required></div>
+    <div class="wide"><label>Description</label><input name="description" required></div>
+    <div><label>Supplier</label><input name="supplier"></div>
+    <div><label>Paid by</label><select name="method">{% for m in PAY_METHODS %}<option>{{ m }}</option>{% endfor %}</select></div>
+    <div><label>Receipt (PDF or photo, optional)</label><input type="file" name="receipt" accept=".pdf,image/*"></div>
+  </div>
+  <p class="muted small"><strong>Goods you buy to sell on go in Stock &rarr; Add stock</strong> (you can attach the receipt there). They count as a purchase automatically, so don't enter them here as well.</p>
+  <p style="margin-bottom:0"><button class="primary">Add expense</button></p>
+</form>
+<form class="searchbar" method="get"><select name="ty" onchange="this.form.submit()">
+  {% for y in years %}<option value="{{ y }}" {{ 'selected' if ty == y|string }}>Tax year {{ tax_year_label(y) }}</option>{% endfor %}
+  <option value="all" {{ 'selected' if ty == 'all' }}>All time</option></select>
+  <a class="btn" href="{{ url_for('export_csv', what='expenses', ty=ty if ty != 'all' else '') }}">Export CSV</a></form>
+<div class="tablewrap"><table><tr><th>Date</th><th>Category</th><th>Description</th><th>Supplier</th><th class="num">Amount</th><th></th></tr>
+{% for e in rows %}<tr><td class="nowrap">{{ e.expense_date|dmy }}</td><td>{{ CAT_LABEL.get(e.category, e.category) }}</td><td>{{ e.description }}{% if e.receipt %} <a href="{{ url_for('receipt', eid=e.id) }}" target="_blank" title="Receipt">&#128206;</a>{% endif %}</td>
+  <td>{{ e.supplier or '' }}</td><td class="num">{{ money(e.amount) }}</td><td><a href="{{ url_for('expense_edit', eid=e.id) }}">edit</a></td></tr>
+{% else %}<tr><td colspan="6" class="muted">No expenses in this period.</td></tr>{% endfor %}
+{% if rows %}<tr class="total"><td colspan="4" class="right">Total</td><td class="num">{{ money(total) }}</td><td></td></tr>{% endif %}</table></div>
+{% endblock %}

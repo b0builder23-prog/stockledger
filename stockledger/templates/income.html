@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Other income{% endblock %}
+{% block body %}
+<div class="row between"><h1>Money</h1>
+  <div class="row"><a class="btn small" href="{{ url_for('expenses') }}">Expenses</a><a class="btn small primary" href="{{ url_for('income') }}">Other income</a></div></div>
+<p class="muted">Invoice payments are counted as income automatically. Use this page only for takings that never had an invoice (for example a cash sale at a car boot).</p>
+<form class="card" method="post">{{ csrf_input() }}
+  <h3>Add other income</h3>
+  <div class="f"><div><label>Date received</label><input type="date" name="income_date" value="{{ today_iso }}"></div>
+  <div class="wide"><label>Description</label><input name="description" required></div>
+  <div><label>Amount £</label><input name="amount" inputmode="decimal" required></div></div>
+  <p style="margin-bottom:0"><button class="primary">Add</button></p>
+</form>
+<form class="searchbar" method="get"><select name="ty" onchange="this.form.submit()">
+  {% for y in years %}<option value="{{ y }}" {{ 'selected' if ty == y|string }}>Tax year {{ tax_year_label(y) }}</option>{% endfor %}
+  <option value="all" {{ 'selected' if ty == 'all' }}>All time</option></select>
+  <a class="btn" href="{{ url_for('export_csv', what='income', ty=ty if ty != 'all' else '') }}">Export all income CSV</a></form>
+<div class="tablewrap"><table><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th></th></tr>
+{% for r in rows %}<tr><td>{{ r.income_date|dmy }}</td><td>{{ r.description }}</td><td class="num">{{ money(r.amount) }}</td>
+  <td><form method="post" action="{{ url_for('income_delete', iid=r.id) }}" class="inline" onsubmit="return confirm('Delete?')">{{ csrf_input() }}<button class="small danger">&times;</button></form></td></tr>
+{% else %}<tr><td colspan="4" class="muted">Nothing recorded in this period.</td></tr>{% endfor %}
+{% if rows %}<tr class="total"><td colspan="2" class="right">Total</td><td class="num">{{ money(total) }}</td><td></td></tr>{% endif %}</table></div>
+{% endblock %}

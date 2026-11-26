@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}First-time setup{% endblock %}
+{% block body %}
+<div class="auth">
+  <h1>Welcome</h1>
+  <p class="muted">Create your login. You can add your logo, address and bank details later in Settings.</p>
+  <form class="card" method="post">
+    {{ csrf_input() }}
+    <p><label>Business name</label><input name="business_name" value="{{ request.form.get('business_name','') }}"></p>
+    <p><label>Username</label><input name="username" autocomplete="username" required value="{{ request.form.get('username','') }}"></p>
+    <p><label>Password (8+ characters)</label><input name="password" type="password" autocomplete="new-password" required></p>
+    <p><label>Repeat password</label><input name="password2" type="password" autocomplete="new-password" required></p>
+    <button class="primary">Create account</button>
+  </form>
+</div>
+{% endblock %}

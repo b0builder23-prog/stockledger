@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Stock{% endblock %}
+{% block body %}
+<div class="row between"><h1>Stock</h1>
+  <div class="row"><a class="btn primary" href="{{ url_for('stock_add') }}">Add stock</a><a class="btn" href="{{ url_for('product_new') }}">New product</a>
+  <a class="btn" href="{{ url_for('export_csv', what='stock') }}">Export CSV</a></div></div>
+<form class="searchbar">
+  <input name="q" value="{{ text }}" placeholder="Scan or type a serial number, name, SKU or barcode" autofocus>
+  <select name="cat" onchange="this.form.submit()"><option value="">All categories</option>
+    {% for c in PRODUCT_CATEGORIES %}<option {{ 'selected' if c == cat }}>{{ c }}</option>{% endfor %}</select>
+  <button>Search</button>{% if text or cat %}<a class="btn" href="{{ url_for('products') }}">Clear</a>{% endif %}
+</form>
+<div class="tablewrap"><table>
+  <tr><th>Product</th><th>Category</th><th class="num">In stock</th><th class="num">Cost value</th><th class="num">Sale price</th><th class="num">Margin on stock</th></tr>
+  {% for p in rows %}
+  <tr><td><a href="{{ url_for('product_view', product_id=p.id) }}">{{ p.name }}</a>{% if p.sku %}<div class="muted small">{{ p.sku }}</div>{% endif %}</td>
+      <td>{{ p.category }}{% if p.tracks_serials %}<div class="muted small">serial numbers</div>{% endif %}</td>
+      <td class="num {{ 'bad' if p.in_stock == 0 else '' }}">{{ p.in_stock }}</td>
+      <td class="num">{{ money(p.cost_value) }}</td>
+      <td class="num">{{ money(p.sale_price) }}</td>
+      <td class="num">{% set m = pct(p.retail_value - p.cost_value, p.retail_value) %}{{ (m ~ '%') if m is not none else '' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Nothing found. <a href="{{ url_for('product_new') }}">Add a product</a> to get started.</td></tr>{% endfor %}
+  {% if rows %}<tr class="total"><td colspan="3">Total</td><td class="num">{{ money(total_cost) }}</td><td></td>
+    <td class="num">{% set m = pct(total_retail - total_cost, total_retail) %}{{ (m ~ '%') if m is not none else '' }}</td></tr>{% endif %}
+</table></div>
+<p class="muted small">Items on a draft invoice count as reserved and are not shown as in stock until the draft is deleted or the invoice voided.</p>
+{% if archived %}<details><summary>Archived products ({{ archived|length }})</summary>
+<ul>{% for p in archived %}<li><a href="{{ url_for('product_view', product_id=p.id) }}">{{ p.name }}</a></li>{% endfor %}</ul></details>{% endif %}
+{% endblock %}

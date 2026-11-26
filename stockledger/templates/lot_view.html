@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ lot.serial or lot.product_name }}{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('product_view', product_id=lot.product_id) }}">&larr; {{ lot.product_name }}</a></p>
+<h1>{% if lot.serial %}Serial {{ lot.serial }}{% else %}Stock batch{% endif %}</h1>
+{% set price = lot.list_price if lot.list_price is not none else lot.product_price %}
+<div class="grid g4">
+  <div class="stat"><div class="n">{{ money(lot.unit_cost) }}</div><div class="l">Cost each</div></div>
+  <div class="stat"><div class="n">{{ money(price) }}</div><div class="l">{{ 'Sale price' if not allocations else 'Listed price' }}</div></div>
+  <div class="stat"><div class="n">{{ money(price - lot.unit_cost) }}</div><div class="l">Expected profit{% set m = pct(price - lot.unit_cost, price) %}{% if m is not none %} ({{ m }}%){% endif %}</div></div>
+  <div class="stat"><div class="n">{{ lot.qty_remaining }} / {{ lot.qty_initial }}</div><div class="l">Left / bought</div></div>
+</div>
+
+{% if allocations %}<h2>Sales</h2>
+<div class="tablewrap"><table><tr><th>Document</th><th>Customer</th><th>Date</th><th class="num">Qty</th><th class="num">Sold at</th><th class="num">Profit each</th></tr>
+{% for a in allocations %}<tr><td><a href="{{ url_for('doc_view', doc_id=a.doc_id) }}">{{ a.number or 'Draft invoice' }}</a> {% if a.status == 'draft' %}<span class="badge Draft">draft</span>{% endif %}</td>
+  <td>{{ a.customer_name or '' }}</td><td>{{ a.issue_date|dmy }}</td><td class="num">{{ a.qty }}</td><td class="num">{{ money(a.unit_price) }}</td>
+  <td class="num">{{ money(a.unit_price - lot.unit_cost) }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if lot.receipt %}<p><a href="{{ url_for('lot_receipt', lot_id=lot.id) }}" target="_blank">&#128206; View purchase receipt</a></p>{% endif %}
+<h2>Details</h2>
+<form class="card" method="post">{{ csrf_input() }}
+  <div class="f">
+    {% if lot.serial is not none %}<div><label>Serial number</label><input name="serial" value="{{ lot.serial }}" required></div>{% endif %}
+    <div><label>Cost each (£){% if locked %} - locked because it has been sold{% endif %}</label><input name="unit_cost" inputmode="decimal" value="{{ pence(lot.unit_cost) }}" {{ 'readonly' if locked }}></div>
+    <div><label>Sale price (£, blank = product default)</label><input name="list_price" inputmode="decimal" value="{{ pence(lot.list_price) if lot.list_price is not none else '' }}"></div>
+    <div><label>Date bought</label><input type="date" name="purchase_date" value="{{ lot.purchase_date }}"></div>
+    <div><label>Supplier</label><input name="supplier" value="{{ lot.supplier or '' }}"></div>
+    <div><label>Condition</label><input name="condition" value="{{ lot.condition or '' }}"></div>
+    <div class="wide"><label>Notes</label><input name="notes" value="{{ lot.notes or '' }}"></div>
+  </div>
+  <p><button class="primary">Save</button></p>
+</form>
+{% if not locked %}
+<form method="post" action="{{ url_for('lot_delete', lot_id=lot.id) }}" onsubmit="return confirm('Delete this stock entry?')">{{ csrf_input() }}<button class="danger">Delete this stock entry</button></form>
+{% endif %}
+{% endblock %}

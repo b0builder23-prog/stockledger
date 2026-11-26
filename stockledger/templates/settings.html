@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block body %}
+<h1>Settings</h1>
+
+<h2>Logo</h2>
+<div class="card">
+  {% if S.logo_file %}<p><img class="logo-preview" src="{{ url_for('logo') }}?v={{ S.logo_file }}" alt="Current logo"></p>{% else %}<p class="muted">No logo yet - invoices show your business name instead.</p>{% endif %}
+  <form method="post" action="{{ url_for('settings_logo') }}" enctype="multipart/form-data" class="row">{{ csrf_input() }}
+    <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" style="max-width:320px"><button class="primary">Upload new logo</button>
+  </form>
+  {% if S.logo_file %}<form method="post" action="{{ url_for('settings_logo') }}" style="margin-top:8px">{{ csrf_input() }}<input type="hidden" name="remove" value="1"><button class="small danger">Remove logo</button></form>{% endif %}
+</div>
+
+<h2>Business details &amp; documents</h2>
+<form class="card" method="post" action="{{ url_for('settings_business') }}">{{ csrf_input() }}
+  <div class="f">
+    <div><label>Business / trading name</label><input name="business_name" value="{{ S.business_name }}"></div>
+    <div><label>Email</label><input name="business_email" value="{{ S.business_email }}"></div>
+    <div><label>Phone</label><input name="business_phone" value="{{ S.business_phone }}"></div>
+    <div class="wide"><label>Address</label><textarea name="business_address">{{ S.business_address }}</textarea></div>
+    <div class="wide"><label>Bank details for payment (shown on invoices)</label><textarea name="bank_details" placeholder="Account name&#10;Sort code&#10;Account number">{{ S.bank_details }}</textarea></div>
+    <div><label>Invoice prefix</label><input name="invoice_prefix" value="{{ S.invoice_prefix }}"></div>
+    <div><label>Next invoice number</label><input name="next_invoice_no" type="number" min="1" value="{{ S.next_invoice_no }}"></div>
+    <div><label>Quote prefix</label><input name="quote_prefix" value="{{ S.quote_prefix }}"></div>
+    <div><label>Next quote number</label><input name="next_quote_no" type="number" min="1" value="{{ S.next_quote_no }}"></div>
+    <div><label>Default payment terms (days)</label><input name="payment_terms_days" type="number" min="0" value="{{ S.payment_terms_days }}"></div>
+    <div><label>Quotes valid for (days)</label><input name="quote_valid_days" type="number" min="0" value="{{ S.quote_valid_days }}"></div>
+    <div class="wide"><label>Invoice footer</label><input name="invoice_footer" value="{{ S.invoice_footer }}"></div>
+    <div class="wide"><label>Quote footer</label><input name="quote_footer" value="{{ S.quote_footer }}"></div>
+    <div class="wide"><label>How stock is deducted in the tax summary</label>
+      <select name="stock_method"><option value="purchases" {{ 'selected' if S.stock_method == 'purchases' }}>When bought (HMRC cash basis - recommended)</option>
+        <option value="cogs" {{ 'selected' if S.stock_method == 'cogs' }}>When sold (cost of the units invoiced)</option></select></div>
+  </div>
+  <p style="margin-bottom:0"><button class="primary">Save settings</button></p>
+</form>
+
+<h2>Backups</h2>
+<div class="card">
+  <p>A copy of the database and your uploads is saved automatically every night after {{ '%02d'|format(backup_hour) }}:00 into the backup folder, keeping the latest {{ backup_keep }}.</p>
+  <form method="post" action="{{ url_for('backup_now') }}">{{ csrf_input() }}<button>Back up now</button></form>
+  {% if backups %}<div class="tablewrap" style="margin-top:12px"><table><tr><th>File</th><th>Written</th><th class="num">Size</th></tr>
+  {% for b in backups[:10] %}<tr><td><a href="{{ url_for('backup_download', name=b.name) }}">{{ b.name }}</a></td><td>{{ b.when.strftime('%d %b %Y %H:%M') }}</td><td class="num">{{ b.size|filesize }}</td></tr>{% endfor %}</table></div>
+  {% else %}<p class="muted">No backups yet.</p>{% endif %}
+</div>
+
+<h2>Your password</h2>
+<form class="card" method="post" action="{{ url_for('settings_password') }}">{{ csrf_input() }}
+  <div class="f"><div><label>Current password</label><input type="password" name="current_password" autocomplete="current-password"></div>
+  <div><label>New password (8+ characters)</label><input type="password" name="new_password" autocomplete="new-password"></div>
+  <div><label>New password again</label><input type="password" name="new_password2" autocomplete="new-password"></div></div>
+  <p style="margin-bottom:0"><button>Change password</button></p>
+</form>
+
+<h2>Users</h2>
+<div class="card">
+  <table>{% for u in users %}<tr><td>{{ u.username }}</td><td class="right">{% if u.id != user.id %}
+    <form class="inline" method="post" action="{{ url_for('user_delete', uid=u.id) }}" onsubmit="return confirm('Remove this user?')">{{ csrf_input() }}<button class="small danger">Remove</button></form>{% else %}<span class="muted">you</span>{% endif %}</td></tr>{% endfor %}</table>
+  <form method="post" action="{{ url_for('user_add') }}" class="row" style="margin-top:12px">{{ csrf_input() }}
+    <input name="username" placeholder="New username" style="max-width:200px"><input name="password" type="password" placeholder="Password (8+)" autocomplete="new-password" style="max-width:200px"><button>Add user</button></form>
+</div>
+{% endblock %}

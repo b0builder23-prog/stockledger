@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Edit expense{% endblock %}
+{% block body %}
+<h1>Edit expense</h1>
+<form class="card" method="post" enctype="multipart/form-data">{{ csrf_input() }}
+  <div class="f">
+    <div><label>Date</label><input type="date" name="expense_date" value="{{ e.expense_date }}" required></div>
+    <div><label>Category</label><select name="category">{% for k, l, h in EXPENSE_CATEGORIES if k != 'goods' or e.category == 'goods' %}<option value="{{ k }}" {{ 'selected' if k == e.category }}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label>Amount £</label><input name="amount" inputmode="decimal" value="{{ pence(e.amount) }}" required></div>
+    <div class="wide"><label>Description</label><input name="description" value="{{ e.description }}" required></div>
+    <div><label>Supplier</label><input name="supplier" value="{{ e.supplier or '' }}"></div>
+    <div><label>Paid by</label><select name="method">{% for m in PAY_METHODS %}<option {{ 'selected' if m == e.method }}>{{ m }}</option>{% endfor %}</select></div>
+    <div class="wide"><label>Receipt {% if e.receipt %}(<a href="{{ url_for('receipt', eid=e.id) }}" target="_blank">view current</a> - upload to replace, or <label class="inline"><input type="checkbox" name="remove_receipt"> remove</label>){% endif %}</label>
+      <input type="file" name="receipt" accept=".pdf,image/*"></div>
+  </div>
+  <p><button class="primary">Save</button> <a class="btn" href="{{ url_for('expenses') }}">Cancel</a></p>
+</form>
+<form method="post" action="{{ url_for('expense_delete', eid=e.id) }}" onsubmit="return confirm('Delete this expense?')">{{ csrf_input() }}<button class="danger">Delete expense</button></form>
+{% endblock %}

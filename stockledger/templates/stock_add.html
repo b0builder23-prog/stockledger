@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Add stock{% endblock %}
+{% block body %}
+<h1>Add stock</h1>
+<form class="card" method="post" enctype="multipart/form-data">
+  {{ csrf_input() }}
+  <div class="f">
+    <div class="wide"><label>Product</label>
+      <select name="product_id" id="prod" required>
+        {% for p in prods %}<option value="{{ p.id }}" data-serial="{{ p.tracks_serials }}" data-price="{{ pence(p.sale_price) }}"
+          {{ 'selected' if f.product_id|string == p.id|string }}>{{ p.category }} - {{ p.name }}</option>{% endfor %}
+      </select></div>
+    <div><label>Date bought</label><input type="date" name="purchase_date" value="{{ f.purchase_date }}" required></div>
+    <div><label>Cost each (£, what you paid)</label><input name="unit_cost" inputmode="decimal" value="{{ f.unit_cost }}" required></div>
+    <div><label>Delivery / extra cost for the whole batch (£, optional)</label><input name="extra_cost" inputmode="decimal" value="{{ f.extra_cost }}"></div>
+    <div><label>Sale price each (£, blank = product default)</label><input name="list_price" inputmode="decimal" value="{{ f.list_price }}"></div>
+    <div><label>Supplier</label><input name="supplier" value="{{ f.supplier }}"></div>
+    <div><label>Condition (optional)</label><input name="condition" value="{{ f.condition }}" placeholder="New / Refurbished / Grade B"></div>
+    <div id="serialbox" class="wide"><label>Serial numbers - one per line (a barcode scanner can type them in, each scan ends with Enter)</label>
+      <textarea name="serials" rows="8" id="serials">{{ f.serials }}</textarea>
+      <div class="muted small" id="count"></div></div>
+    <div id="qtybox"><label>Quantity</label><input name="qty" type="number" min="1" value="{{ f.qty }}"></div>
+    <div><label>Receipt / invoice from supplier (PDF or photo, optional)</label><input type="file" name="receipt" accept=".pdf,image/*"></div>
+    <div class="wide"><label>Notes</label><input name="notes" value="{{ f.notes }}"></div>
+  </div>
+  <p class="muted small">This is where goods bought for resale are recorded for your accounts - the cost counts as a purchase in the tax summary automatically, so <strong>don't also enter it under Expenses</strong>. The same cost applies to every unit added in one go (any delivery cost is shared equally between them, to the nearest penny). Bought at different prices? Add them as separate batches.</p>
+  <p><button class="primary">Add to stock</button> <a class="btn" href="{{ url_for('products') }}">Cancel</a></p>
+</form>
+<script>
+const sel=document.getElementById('prod'), sb=document.getElementById('serialbox'), qb=document.getElementById('qtybox'),
+      ta=document.getElementById('serials'), cnt=document.getElementById('count');
+function sync(){const s=sel.selectedOptions[0].dataset.serial==='1';sb.style.display=s?'':'none';qb.style.display=s?'none':'';}
+function count(){const n=new Set(ta.value.split(/[\n\r,;\t]+/).map(x=>x.trim().toLowerCase()).filter(Boolean)).size;cnt.textContent=n?n+' serial number'+(n>1?'s':''):'';}
+sel.addEventListener('change',sync);ta.addEventListener('input',count);sync();count();
+</script>
+{% endblock %}
